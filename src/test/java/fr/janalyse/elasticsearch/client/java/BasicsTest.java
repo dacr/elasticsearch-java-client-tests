@@ -5,12 +5,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -26,9 +32,9 @@ public class BasicsTest extends ElasticClientTestsHelper {
   @DisplayName("elasticsearch client application should be able to get cluster state information")
   void checkCluster() throws IOException {
     ClusterHealthRequest request = new ClusterHealthRequest();
-    ClusterHealthResponse healthResponse = client.cluster().health(request, RequestOptions.DEFAULT);
-    String clusterName = healthResponse.getClusterName();
-    assertTrue(clusterName.length() > 0);
+    ClusterHealthResponse response = client.cluster().health(request, RequestOptions.DEFAULT);
+    assertTrue(response.getNumberOfNodes() > 0);
+    assertTrue(response.getClusterName().length() > 0);
   }
 
   @Test
@@ -41,8 +47,8 @@ public class BasicsTest extends ElasticClientTestsHelper {
                     .put("index.number_of_shards", 3)
                     .put("index.number_of_replicas", 1)
     );
-    CreateIndexResponse createIndexResponse = client.indices().create(request, RequestOptions.DEFAULT);
-    assertTrue(createIndexResponse.isAcknowledged());
+    CreateIndexResponse responses = client.indices().create(request, RequestOptions.DEFAULT);
+    assertTrue(responses.isAcknowledged());
   }
 
   @Test
@@ -53,30 +59,91 @@ public class BasicsTest extends ElasticClientTestsHelper {
     IndexRequest request =
             new IndexRequest("basics")
                     .source(json, XContentType.JSON);
-    IndexResponse indexResponse = client.index(request, RequestOptions.DEFAULT);
-    assertTrue(indexResponse.status().getStatus() < 400);
+    IndexResponse response = client.index(request, RequestOptions.DEFAULT);
+    assertTrue(response.status().getStatus() < 400);
   }
 
   @Test
   @Order(10)
-  @DisplayName("put / update document synchronously")
-  void putDocument() throws IOException {
+  @DisplayName("add document with ID synchronously")
+  void addDocumentWithId() throws IOException {
     String json = "{\"msg\":\"Hello World\"}";
     IndexRequest request =
             new IndexRequest("basics")
                     .id("42")
                     .source(json, XContentType.JSON);
-    IndexResponse indexResponse = client.index(request, RequestOptions.DEFAULT);
-    assertTrue(indexResponse.status().getStatus() < 400);
+    IndexResponse response = client.index(request, RequestOptions.DEFAULT);
+    assertTrue(response.status().getStatus() < 400);
   }
 
   @Test
-  @Order(11)
+  @Order(20)
+  @DisplayName("update document  synchronously")
+  void updateDocument() throws IOException {
+    String json = "{\"msg\":\"Hello World !!\"}";
+    UpdateRequest request =
+            new UpdateRequest("basics", "42")
+                    .doc(json, XContentType.JSON);
+    UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
+    assertTrue(response.status().getStatus() < 400);
+  }
+
+
+  @Test
+  @Order(30)
   @DisplayName("get document synchronously")
   void getDocument() throws IOException {
     GetRequest request = new GetRequest("basics", "42");
     GetResponse response = client.get(request, RequestOptions.DEFAULT);
-    assertTrue( ! response.isSourceEmpty());
+    assertTrue(!response.isSourceEmpty());
+    assertTrue(response.getVersion() == 2);
+  }
+
+  @Test
+  @Order(30)
+  @DisplayName("upsert document synchronously, insert if it doesn't exist")
+  void upsertAsInsertDocument() throws IOException {
+    //info("If the document doesn't exist it is inserted, if it exists then it is updated");
+    String json = "{\"msg\":\"Bonjour tout le monde !\"}";
+    UpdateRequest request =
+            new UpdateRequest("basics", "4242")
+                    .doc(json, XContentType.JSON)
+                    .docAsUpsert(true);
+    UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
+    assertTrue(response.status().getStatus() < 400);
+  }
+
+  @Test
+  @Order(35)
+  @DisplayName("upsert document synchronously, update if it exists")
+  void upsertAsUpdateDocument() throws IOException {
+    //info("If the document doesn't exist it is inserted, if it exists then it is updated");
+    String json = "{\"msg\":\"Bonjour tout le monde !\"}";
+    UpdateRequest request =
+            new UpdateRequest("basics", "4242")
+                    .doc(json, XContentType.JSON)
+                    .docAsUpsert(true);
+    UpdateResponse response = client.update(request, RequestOptions.DEFAULT);
+    assertTrue(response.status().getStatus() < 400);
+  }
+
+  @Test
+  @Order(40)
+  @DisplayName("refresh synchronously in order to get the right count")
+  void refresh() throws IOException {
+    //info("Take care of performance, this is not something you should do");
+    RefreshRequest request = new RefreshRequest("basics");
+    RefreshResponse response = client.indices().refresh(request, RequestOptions.DEFAULT);
+    assertTrue(response.getStatus().getStatus() < 400);
+  }
+
+  @Test
+  @Order(50)
+  @DisplayName("count document synchronously")
+  void countDocuments() throws IOException {
+    CountRequest request = new CountRequest("basics");
+    CountResponse response = client.count(request, RequestOptions.DEFAULT);
+    assertTrue(response.getCount() == 3L, "current size is "+response.getCount());
   }
 
 
@@ -85,8 +152,8 @@ public class BasicsTest extends ElasticClientTestsHelper {
   @DisplayName("delete an index synchronously")
   void deleteIndex() throws IOException {
     DeleteIndexRequest request = new DeleteIndexRequest("basics");
-    AcknowledgedResponse deleteResponse = client.indices().delete(request, RequestOptions.DEFAULT);
-    assertTrue(deleteResponse.isAcknowledged());
+    AcknowledgedResponse response = client.indices().delete(request, RequestOptions.DEFAULT);
+    assertTrue(response.isAcknowledged());
   }
 
 }
