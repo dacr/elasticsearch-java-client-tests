@@ -2,6 +2,8 @@ package fr.janalyse.elasticsearch.client.java;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.apache.http.HttpHost;
+import org.codelibs.elasticsearch.runner.ElasticsearchClusterRunner;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -15,6 +17,8 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.core.CountResponse;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -27,7 +31,50 @@ import java.io.IOException;
 import java.util.UUID;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BasicsTest extends ElasticClientTestsHelper {
+public class BasicsTest {
+
+  static private RestHighLevelClient client = null;
+
+  @BeforeAll
+  static void startupElasticsearch() {
+
+    ElasticsearchClusterRunner runner = new ElasticsearchClusterRunner();
+    // create ES nodes
+    runner.onBuild(new ElasticsearchClusterRunner.Builder() {
+      @Override
+      public void build(final int number, final Settings.Builder settingsBuilder) {
+        // put elasticsearch settings
+        //settingsBuilder.put("index.number_of_replicas", 0);
+      }
+    }).build(
+            ElasticsearchClusterRunner
+                    .newConfigs()
+                    .basePath("test-elastic-data")
+                    .numOfNode(1)
+    );
+
+    /*
+    runner.build( {
+      ElasticsearchClusterRunner.newConfigs()
+              .numOfNode(1)
+              .basePath("elastic-data")
+              .clusterName("my-name")
+    }
+    runner.ensureYellow()
+     */
+    // get client connection
+    client = new RestHighLevelClient(
+            RestClient.builder(
+                    new HttpHost("localhost", 9201, "http")
+            ));
+  }
+
+  @AfterAll
+  static void shutdownElasticsearch() throws IOException {
+    client.close();
+  }
+
+
   @Test
   @DisplayName("elasticsearch client application should be able to get cluster state information")
   void checkCluster() throws IOException {
@@ -143,7 +190,7 @@ public class BasicsTest extends ElasticClientTestsHelper {
   void countDocuments() throws IOException {
     CountRequest request = new CountRequest("basics");
     CountResponse response = client.count(request, RequestOptions.DEFAULT);
-    assertTrue(response.getCount() == 3L, "current size is "+response.getCount());
+    assertTrue(response.getCount() == 3L, "current size is " + response.getCount());
   }
 
 

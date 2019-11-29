@@ -32,3 +32,6 @@ hs_err_pid*
 !gradle-wrapper.jar
 gradle-app.setting
 
+
+# project specific
+test-elastic-data

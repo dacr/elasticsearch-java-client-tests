@@ -8,6 +8,7 @@ repositories {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.25'
     compile 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.4.2'
+    compile 'org.codelibs:elasticsearch-cluster-runner:7.4.2.0'
     testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
 }
 
