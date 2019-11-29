@@ -34,11 +34,11 @@ import java.util.UUID;
 public class BasicsTest {
 
   static private RestHighLevelClient client = null;
+  static private ElasticsearchClusterRunner runner = new ElasticsearchClusterRunner();
 
   @BeforeAll
   static void startupElasticsearch() {
 
-    ElasticsearchClusterRunner runner = new ElasticsearchClusterRunner();
     // create ES nodes
     runner.onBuild(new ElasticsearchClusterRunner.Builder() {
       @Override
@@ -52,16 +52,8 @@ public class BasicsTest {
                     .basePath("test-elastic-data")
                     .numOfNode(1)
     );
+    runner.ensureYellow();
 
-    /*
-    runner.build( {
-      ElasticsearchClusterRunner.newConfigs()
-              .numOfNode(1)
-              .basePath("elastic-data")
-              .clusterName("my-name")
-    }
-    runner.ensureYellow()
-     */
     // get client connection
     client = new RestHighLevelClient(
             RestClient.builder(
@@ -72,6 +64,8 @@ public class BasicsTest {
   @AfterAll
   static void shutdownElasticsearch() throws IOException {
     client.close();
+    runner.close();
+    runner.clean();
   }
 
 
