@@ -1,5 +1,6 @@
-package fr.janalyse.elasticsearch.client.java;
+package fr.janalyse.elasticsearch.client.java.helpers;
 
+import fr.janalyse.elasticsearch.client.java.ElasticClientHelper;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

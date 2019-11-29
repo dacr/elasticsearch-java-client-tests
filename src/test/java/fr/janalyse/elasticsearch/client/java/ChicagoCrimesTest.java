@@ -1,5 +1,6 @@
 package fr.janalyse.elasticsearch.client.java;
 
+import fr.janalyse.elasticsearch.client.java.helpers.ElasticClientTestsHelper;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
